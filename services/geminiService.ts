@@ -87,18 +87,35 @@ export const getStudyGuide = async (examType: ExamType): Promise<StudyGuide> => 
       },
     });
     
-    const jsonText = response.text.trim();
+    let jsonText = response.text.trim();
+    
+    // The API might wrap the JSON in markdown backticks, so we clean it.
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.slice(7, -3).trim();
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.slice(3, -3).trim();
+    }
+
+    if (!jsonText) {
+        throw new Error("Received empty response from Gemini API.");
+    }
+
     const parsedData = JSON.parse(jsonText);
 
     return parsedData as StudyGuide;
 
   } catch (error) {
     console.error("Error fetching study guide from Gemini API:", error);
-    // Provide fallback data in case of an API error to ensure the app is still usable.
+    // Provide a clearer fallback with a more helpful message.
+    const errorItem = { 
+      title: 'Erro ao Carregar', 
+      description: 'Não foi possível carregar o conteúdo. Verifique sua chave de API e tente novamente mais tarde.', 
+      url: '#' 
+    };
     return {
-        videos: [{ title: 'Erro ao Carregar', description: 'Não foi possível carregar o conteúdo. Tente novamente mais tarde.', url: '#' }],
-        podcasts: [],
-        articles: [],
+        videos: [errorItem],
+        podcasts: [errorItem],
+        articles: [errorItem],
     };
   }
 };
